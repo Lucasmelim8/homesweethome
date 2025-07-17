@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enxoval Pro - Controle Inteligente</title>
+    <title>Nosso Lar - Controle Inteligente</title>
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- React -->
@@ -359,7 +359,7 @@
                 <div>
                     <header className="bg-white/80 backdrop-blur-lg sticky top-0 z-30 border-b border-slate-200/80">
                       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
-                          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Enxoval<span className="text-blue-600">Pro</span></h1>
+                          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Nosso<span className="text-blue-600">Lar</span></h1>
                           <div className="flex items-center gap-2">
                                <button onClick={() => setModal({ isOpen: true, type: 'ADD_ITEM', data: { category_id: categories[0]?.id || '', name: '', total_quantity: 1, purchased_quantity: 0, notes: '' } })} className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg transition-all shadow-sm">
                                   <IconPlus className="w-5 h-5" /> <span className="hidden sm:inline">Adicionar Item</span>
@@ -425,7 +425,7 @@
                     <Toast message={toast.message} show={toast.show} />
 
                     <footer className="text-center py-10 text-slate-500 text-sm">
-                        <p>&copy; {new Date().getFullYear()} EnxovalPro. Todos os direitos reservados.</p>
+                        <p>&copy; {new Date().getFullYear()} Começando a vida juntinhos, Lucas e Kaillany.</p>
                     </footer>
                 </div>
             );
