@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enxoval Pro - Controle Inteligente</title>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .modal-overlay { animation: fadeIn 0.2s ease-out; }
+        .modal-content { animation: scaleUp 0.2s ease-out; }
+        .toast-container { animation: toast-in-out 4s ease-in-out forwards; }
+        .progress-bar div { transition: width 0.5s ease-in-out; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scaleUp { from { transform: scale(0.95) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+        @keyframes toast-in-out {
+            0% { transform: translateY(120%); opacity: 0; }
+            10%, 90% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(120%); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useCallback } = React;
+        const { createClient } = supabase;
+
+        // --- CONFIGURAÇÃO DO SUPABASE ---
+        const SUPABASE_URL = 'https://qrfmhbxhhfkrkmdifgua.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyZm1oYnhoaGZrcmttZGlmZ3VhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3NzU1OTksImV4cCI6MjA2ODM1MTU5OX0.IPkYbqR8feaWHagO4Ty-4aO80p1hBFoxSocf8aEOuZw';
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- ÍCONES (Heroicons - Outline Style) ---
+        const IconPlus = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>);
+        const IconPencilSquare = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>);
+        const IconTrash = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>);
+        const IconCheckCircleSolid = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}><path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.06-1.06l-3.105 3.104-1.595-1.594a.75.75 0 0 0-1.06 1.061l2.125 2.125a.75.75 0 0 0 1.06 0l3.625-3.625Z" clipRule="evenodd" /></svg>);
+        const IconCheckCircle = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>);
+        const IconXCircle = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>);
+        const IconBackspace = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75 14.25 12m0 0 2.25 2.25M14.25 12l2.25-2.25M14.25 12 12 14.25m-2.58 4.92-6.374-6.375a1.125 1.125 0 0 1 0-1.59L9.42 4.83c.21-.211.497-.33.795-.33H19.5a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-9.284c-.298 0-.585-.119-.795-.33Z" /></svg>);
+        const IconChevronDown = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>);
+        const IconHomeModern = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>);
+        const IconFire = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.362-3.797A8.33 8.33 0 0 1 12 2.25c2.18 0 4.22.862 5.75 2.282m-1.136 0A10.436 10.436 0 0 1 12 6.225c-2.433 0-4.671.935-6.364 2.453m12.728 0a10.47 10.47 0 0 1-3.642 1.32M12 12.75h.008v.008H12v-.008Z" /></svg>);
+        const IconMoon = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" /></svg>);
+        const IconSparkles = ({ className }) => (<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.452-2.452L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.452-2.452L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.452 2.452L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.452 2.452ZM16.5 13.5h.008v.008H16.5v-.008Z" /></svg>);
+
+        const categoryIcons = {
+            home: IconHomeModern, fire: IconFire, moon: IconMoon, sparkles: IconSparkles, default: IconHomeModern
+        };
+
+        // --- COMPONENTES DA UI ---
+        const Modal = ({ isOpen, onClose, title, children }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="modal-overlay fixed inset-0 bg-slate-900/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+                    <div className="modal-content bg-white rounded-xl shadow-2xl w-full max-w-md m-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-5 border-b border-slate-200 flex justify-between items-center">
+                            <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
+                            <button onClick={onClose} className="p-1 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"><IconXCircle className="w-6 h-6"/></button>
+                        </div>
+                        <div className="p-6">{children}</div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Toast = ({ message, show }) => {
+            if (!show) return null;
+            return (
+                <div className="toast-container fixed bottom-5 right-5 bg-slate-900 text-white py-3 px-5 rounded-lg shadow-2xl z-50 flex items-center gap-3">
+                    <IconCheckCircleSolid className="w-6 h-6 text-emerald-400" />
+                    <span className="font-medium">{message}</span>
+                </div>
+            );
+        };
+        
+        const ProgressBar = ({ value, total }) => {
+            const percentage = total > 0 ? (value / total) * 100 : 0;
+            return (
+                <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                    <div className="progress-bar bg-blue-600 h-2.5 rounded-full" style={{ width: `${percentage}%` }}></div>
+                </div>
+            );
+        };
+
+        const OverallProgress = ({ items }) => {
+            const totalItems = items.length;
+            const purchasedItems = items.filter(item => item.purchased_quantity >= item.total_quantity).length;
+            const percentage = totalItems > 0 ? Math.round((purchasedItems / totalItems) * 100) : 0;
+
+            return (
+                <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm">
+                    <div className="flex justify-between items-center mb-2">
+                        <h2 className="font-bold text-slate-800 text-lg">Progresso Geral do Enxoval</h2>
+                        <span className="font-bold text-blue-600 text-lg">{percentage}%</span>
+                    </div>
+                    <p className="text-slate-500 text-sm mb-3">
+                        {purchasedItems} de {totalItems} itens comprados.
+                    </p>
+                    <ProgressBar value={purchasedItems} total={totalItems} />
+                </div>
+            );
+        };
+
+        const ItemCard = ({ item, onUpdate, onDelete, onToggleStatus }) => {
+            const isPurchased = item.purchased_quantity >= item.total_quantity;
+            const remainingQuantity = item.total_quantity - item.purchased_quantity;
+
+            return (
+                <div className={`transition-all duration-300 bg-white border rounded-lg p-4 flex flex-col gap-3 ${isPurchased ? 'border-emerald-200 bg-slate-50' : 'border-slate-200'}`}>
+                    <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                            <p className={`font-semibold text-base ${isPurchased ? 'line-through text-slate-400' : 'text-slate-800'}`}>{item.name}</p>
+                            {item.notes && (<p className={`text-sm mt-1 ${isPurchased ? 'text-slate-400' : 'text-slate-500'}`}>Obs: {item.notes}</p>)}
+                        </div>
+                        <div className="flex items-center gap-1 ml-2">
+                            <button onClick={() => onUpdate(item)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"><IconPencilSquare className="w-5 h-5" /></button>
+                            <button onClick={() => onDelete(item)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"><IconTrash className="w-5 h-5" /></button>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 pt-2 border-t border-slate-100">
+                        <div className={`text-xs font-bold uppercase px-2.5 py-1 rounded-full ${isPurchased ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {isPurchased ? `Comprado` : `Faltam ${remainingQuantity}`}
+                        </div>
+                        <button onClick={() => onToggleStatus(item)} className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+                            {isPurchased ? <IconXCircle className="w-5 h-5 text-slate-400" /> : <IconCheckCircle className="w-5 h-5 text-emerald-500" />}
+                            <span className="hidden sm:inline">{isPurchased ? 'Pendente' : 'Comprado'}</span>
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const CategorySection = ({ category, items, onAddItem, onEditCategory, onDeleteCategory, onUpdateItem, onDeleteItem, onToggleItemStatus }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const purchasedCount = items.filter(i => i.purchased_quantity >= i.total_quantity).length;
+            const totalCount = items.length;
+            const CategoryIcon = categoryIcons[category.icon] || categoryIcons.default;
+
+            return (
+                <div className="bg-white border border-slate-200/80 rounded-xl shadow-sm overflow-hidden transition-all duration-300">
+                    <div className="p-4 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <CategoryIcon className="w-7 h-7 text-blue-600" />
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-800">{category.name}</h2>
+                                    <p className="text-sm text-slate-500">{purchasedCount} de {totalCount} itens comprados</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <button onClick={(e) => { e.stopPropagation(); onEditCategory(category); }} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"><IconPencilSquare className="w-5 h-5" /></button>
+                                <button onClick={(e) => { e.stopPropagation(); onDeleteCategory(category); }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"><IconTrash className="w-5 h-5" /></button>
+                                <IconChevronDown className={`w-6 h-6 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+                            </div>
+                        </div>
+                        <div className="mt-4">
+                           <ProgressBar value={purchasedCount} total={totalCount} />
+                        </div>
+                    </div>
+                    {isOpen && (
+                        <div className="p-4 pt-2">
+                            <div className="space-y-3">
+                                {items.length > 0 ? (
+                                    items.map(item => <ItemCard key={item.id} item={item} onUpdate={onUpdateItem} onDelete={onDeleteItem} onToggleStatus={onToggleItemStatus} />)
+                                ) : (
+                                    <div className="text-center py-6">
+                                      <p className="text-slate-500">Nenhum item para esta categoria ainda.</p>
+                                      <p className="text-slate-400 text-sm">Clique abaixo para começar a adicionar.</p>
+                                    </div>
+                                )}
+                            </div>
+                            <button onClick={() => onAddItem(category.id)} className="mt-4 w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-lg transition-colors">
+                                <IconPlus className="w-5 h-5" /> Adicionar Item
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        
+        function App() {
+            const [categories, setCategories] = useState([]);
+            const [items, setItems] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [filters, setFilters] = useState({ search: '', category: 'all', status: 'all' });
+            const [modal, setModal] = useState({ isOpen: false, type: null, data: null });
+            const [toast, setToast] = useState({ show: false, message: '' });
+
+            const showToast = (message) => {
+                setToast({ show: true, message });
+                setTimeout(() => setToast({ show: false, message: '' }), 3500);
+            };
+
+            const fetchData = useCallback(async () => {
+                setLoading(true);
+                try {
+                    const { data: categoriesData, error: categoriesError } = await supabaseClient.from('categories').select('*').order('created_at');
+                    if (categoriesError) throw categoriesError;
+                    setCategories(categoriesData);
+
+                    const { data: itemsData, error: itemsError } = await supabaseClient.from('items').select('*').order('created_at');
+                    if (itemsError) throw itemsError;
+                    setItems(itemsData);
+                } catch (error) {
+                    console.error("Erro ao buscar dados:", error);
+                    showToast("Erro ao carregar dados.");
+                } finally {
+                    setLoading(false);
+                }
+            }, []);
+
+            useEffect(() => {
+                fetchData();
+            }, [fetchData]);
+
+            const filteredItems = useMemo(() => {
+                return items.filter(item => {
+                    const isPurchased = item.purchased_quantity >= item.total_quantity;
+                    const searchMatch = item.name.toLowerCase().includes(filters.search.toLowerCase());
+                    const categoryMatch = filters.category === 'all' || item.category_id === filters.category;
+                    const statusMatch = filters.status === 'all' || (filters.status === 'purchased' && isPurchased) || (filters.status === 'pending' && !isPurchased);
+                    return searchMatch && categoryMatch && statusMatch;
+                });
+            }, [items, filters]);
+
+            const itemsByCategory = useMemo(() => {
+                return filteredItems.reduce((acc, item) => {
+                    if (!acc[item.category_id]) acc[item.category_id] = [];
+                    acc[item.category_id].push(item);
+                    return acc;
+                }, {});
+            }, [filteredItems]);
+
+            const closeModal = () => setModal({ isOpen: false, type: null, data: null });
+
+            const handleSaveCategory = async (categoryData) => {
+                try {
+                    if (categoryData.id) { // UPDATE
+                        const { data, error } = await supabaseClient.from('categories').update({ name: categoryData.name, icon: categoryData.icon }).eq('id', categoryData.id).select().single();
+                        if (error) throw error;
+                        setCategories(cats => cats.map(c => c.id === data.id ? data : c));
+                        showToast("Categoria atualizada!");
+                    } else { // INSERT
+                        const { data, error } = await supabaseClient.from('categories').insert({ name: categoryData.name, icon: categoryData.icon || 'default' }).select().single();
+                        if (error) throw error;
+                        setCategories(cats => [...cats, data]);
+                        showToast("Categoria criada!");
+                    }
+                } catch (error) {
+                    console.error("Erro ao salvar categoria:", error);
+                    showToast("Falha ao salvar categoria.");
+                }
+                closeModal();
+            };
+
+            const handleDeleteCategory = async (categoryId) => {
+                try {
+                    const { error } = await supabaseClient.from('categories').delete().eq('id', categoryId);
+                    if (error) throw error;
+                    // Itens são deletados em cascata pelo DB
+                    setCategories(cats => cats.filter(c => c.id !== categoryId));
+                    setItems(its => its.filter(i => i.category_id !== categoryId));
+                    showToast("Categoria excluída.");
+                } catch (error) {
+                    console.error("Erro ao deletar categoria:", error);
+                    showToast("Falha ao deletar categoria.");
+                }
+                closeModal();
+            };
+
+            const handleSaveItem = async (itemData) => {
+                try {
+                    const payload = {
+                        name: itemData.name,
+                        category_id: itemData.category_id,
+                        notes: itemData.notes,
+                        total_quantity: parseInt(itemData.total_quantity, 10) || 1,
+                        purchased_quantity: parseInt(itemData.purchased_quantity, 10) || 0,
+                    };
+
+                    if (itemData.id) { // UPDATE
+                        const { data, error } = await supabaseClient.from('items').update(payload).eq('id', itemData.id).select().single();
+                        if (error) throw error;
+                        setItems(its => its.map(i => i.id === data.id ? data : i));
+                        showToast("Item atualizado!");
+                    } else { // INSERT
+                        const { data, error } = await supabaseClient.from('items').insert(payload).select().single();
+                        if (error) throw error;
+                        setItems(its => [...its, data]);
+                        showToast("Item adicionado!");
+                    }
+                } catch(error) {
+                    console.error("Erro ao salvar item:", error);
+                    showToast("Falha ao salvar item.");
+                }
+                closeModal();
+            };
+
+            const handleDeleteItem = async (itemId) => {
+                try {
+                    const { error } = await supabaseClient.from('items').delete().eq('id', itemId);
+                    if (error) throw error;
+                    setItems(its => its.filter(i => i.id !== itemId));
+                    showToast("Item excluído.");
+                } catch(error) {
+                    console.error("Erro ao deletar item:", error);
+                    showToast("Falha ao deletar item.");
+                }
+                closeModal();
+            };
+
+            const handleToggleItemStatus = async (item) => {
+                const isPurchased = item.purchased_quantity >= item.total_quantity;
+                const newPurchasedQuantity = isPurchased ? 0 : item.total_quantity;
+                
+                try {
+                    const { data, error } = await supabaseClient.from('items').update({ purchased_quantity: newPurchasedQuantity }).eq('id', item.id).select().single();
+                    if (error) throw error;
+                    setItems(its => its.map(i => i.id === data.id ? data : i));
+                    showToast(isPurchased ? "Item marcado como pendente." : "Item marcado como comprado!");
+                } catch (error) {
+                    console.error("Erro ao atualizar status do item:", error);
+                    showToast("Falha ao atualizar status.");
+                }
+            };
+            
+            const handleFilterChange = (filterType, value) => setFilters(prev => ({ ...prev, [filterType]: value }));
+            const clearFilters = () => setFilters({ search: '', category: 'all', status: 'all' });
+
+            const renderModalContent = () => {
+                if (!modal.isOpen) return null;
+                const { type, data } = modal;
+                switch (type) {
+                    case 'EDIT_CATEGORY': case 'ADD_CATEGORY': return <CategoryForm category={data} onSave={handleSaveCategory} onCancel={closeModal} />;
+                    case 'DELETE_CATEGORY': return <ConfirmationDialog title="Excluir Categoria?" message={`Tem certeza que deseja excluir a categoria "${data.name}"? Todos os itens associados também serão removidos.`} onConfirm={() => handleDeleteCategory(data.id)} onCancel={closeModal} />;
+                    case 'EDIT_ITEM': case 'ADD_ITEM': return <ItemForm item={data} categories={categories} onSave={handleSaveItem} onCancel={closeModal} />;
+                    case 'DELETE_ITEM': return <ConfirmationDialog title="Excluir Item?" message={`Tem certeza que deseja excluir o item "${data.name}"?`} onConfirm={() => handleDeleteItem(data.id)} onCancel={closeModal} />;
+                    default: return null;
+                }
+            };
+            
+            return (
+                <div>
+                    <header className="bg-white/80 backdrop-blur-lg sticky top-0 z-30 border-b border-slate-200/80">
+                      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+                          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Enxoval<span className="text-blue-600">Pro</span></h1>
+                          <div className="flex items-center gap-2">
+                               <button onClick={() => setModal({ isOpen: true, type: 'ADD_ITEM', data: { category_id: categories[0]?.id || '', name: '', total_quantity: 1, purchased_quantity: 0, notes: '' } })} className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold py-2 px-4 rounded-lg transition-all shadow-sm">
+                                  <IconPlus className="w-5 h-5" /> <span className="hidden sm:inline">Adicionar Item</span>
+                               </button>
+                               <button onClick={() => setModal({ isOpen: true, type: 'ADD_CATEGORY', data: { name: '' } })} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
+                                  <IconPlus className="w-5 h-5" /> <span className="hidden sm:inline">Nova Categoria</span>
+                               </button>
+                          </div>
+                      </div>
+                    </header>
+
+                    <main className="max-w-6xl mx-auto p-4 sm:px-6 lg:px-8 py-8">
+                        {loading ? (
+                            <div className="text-center py-20 text-slate-500">Carregando seus dados...</div>
+                        ) : (
+                            <>
+                                <div className="mb-8">
+                                   <OverallProgress items={items} />
+                                </div>
+                                
+                                <div className="bg-white p-4 rounded-xl mb-8 border border-slate-200/80 shadow-sm">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+                                        <input type="text" placeholder="Buscar por nome do item..." value={filters.search} onChange={(e) => handleFilterChange('search', e.target.value)} className="lg:col-span-2 w-full p-2.5 bg-slate-100 border-transparent rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
+                                        <select value={filters.category} onChange={(e) => handleFilterChange('category', e.target.value)} className="w-full p-2.5 bg-slate-100 border-transparent rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                            <option value="all">Todas as Categorias</option>
+                                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                        <select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} className="w-full p-2.5 bg-slate-100 border-transparent rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                            <option value="all">Todos os Status</option>
+                                            <option value="purchased">Comprados</option>
+                                            <option value="pending">Pendentes</option>
+                                        </select>
+                                        {(filters.search || filters.category !== 'all' || filters.status !== 'all') && (
+                                            <button onClick={clearFilters} className="lg:col-span-4 flex items-center justify-center gap-2 bg-slate-200 hover:bg-slate-300 text-slate-600 font-semibold py-2 px-4 rounded-lg transition-colors">
+                                                <IconBackspace className="w-5 h-5" /> Limpar Filtros
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {categories.map(category => {
+                                        const categoryItems = itemsByCategory[category.id] || [];
+                                        if (filteredItems.length > 0 && categoryItems.length === 0 && filters.category !== 'all' && filters.category !== category.id) return null;
+                                        if (categoryItems.length === 0 && (filters.search || filters.status !== 'all')) return null;
+                                        return <CategorySection key={category.id} category={category} items={categoryItems.sort((a,b) => a.name.localeCompare(b.name))} onAddItem={(categoryId) => setModal({ isOpen: true, type: 'ADD_ITEM', data: { category_id: categoryId, name: '', total_quantity: 1, purchased_quantity: 0, notes: '' } })} onEditCategory={(cat) => setModal({ isOpen: true, type: 'EDIT_CATEGORY', data: cat })} onDeleteCategory={(cat) => setModal({ isOpen: true, type: 'DELETE_CATEGORY', data: cat })} onUpdateItem={(item) => setModal({ isOpen: true, type: 'EDIT_ITEM', data: item })} onDeleteItem={(item) => setModal({ isOpen: true, type: 'DELETE_ITEM', data: item })} onToggleItemStatus={handleToggleItemStatus} />;
+                                    })}
+                                     {filteredItems.length === 0 && !loading && (
+                                        <div className="text-center py-16 bg-white rounded-lg shadow-sm border border-slate-200/80">
+                                            <h3 className="text-xl font-semibold text-slate-700">Nenhum item encontrado</h3>
+                                            <p className="text-slate-500 mt-2">Tente ajustar seus filtros ou adicione novos itens à sua lista.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </main>
+
+                    <Modal isOpen={modal.isOpen} onClose={closeModal} title={modal.type?.includes('ADD') ? 'Adicionar' : modal.type?.includes('EDIT') ? 'Editar' : 'Confirmação'}>
+                        {renderModalContent()}
+                    </Modal>
+                    
+                    <Toast message={toast.message} show={toast.show} />
+
+                    <footer className="text-center py-10 text-slate-500 text-sm">
+                        <p>&copy; {new Date().getFullYear()} EnxovalPro. Todos os direitos reservados.</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        const CategoryForm = ({ category, onSave, onCancel }) => {
+            const [formData, setFormData] = useState(category || { name: '', icon: 'default' });
+            const isEditing = !!category.id;
+            const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
+            const handleSubmit = (e) => { e.preventDefault(); if (formData.name.trim()) onSave(formData); };
+            
+            return (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label htmlFor="categoryName" className="block text-sm font-medium text-slate-700 mb-1">Nome da Categoria</label>
+                        <input id="categoryName" name="name" type="text" value={formData.name} onChange={handleChange} className="w-full p-2.5 bg-slate-100 border-transparent rounded-lg" required />
+                    </div>
+                    {/* Opcional: Adicionar seletor de ícone no futuro */}
+                    <div className="flex justify-end gap-3 pt-4">
+                        <button type="button" onClick={onCancel} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2 px-4 rounded-lg">Cancelar</button>
+                        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg">{isEditing ? 'Salvar' : 'Criar'}</button>
+                    </div>
+                </form>
+            );
+        };
+
+        const ItemForm = ({ item, categories, onSave, onCancel }) => {
+            const [formData, setFormData] = useState(item || { name: '', category_id: '', total_quantity: 1, purchased_quantity: 0, notes: '' });
+            const isEditing = !!item.id;
+            const handleChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
+            const handleSubmit = (e) => { e.preventDefault(); if (formData.name.trim() && formData.category_id) onSave(formData); };
+            return (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label htmlFor="itemName" className="block text-sm font-medium text-slate-700 mb-1">Nome do Item</label>
+                        <input id="itemName" name="name" type="text" value={formData.name} onChange={handleChange} className="w-full p-2.5 bg-slate-100 border-transparent rounded-lg" required />
+                    </div>
+                    <div>
+                        <label htmlFor="category_id" className="block text-sm font-medium text-slate-700 mb-1">Categoria</label>
+                        <select id="category_id" name="category_id" value={formData.category_id} onChange={handleChange} className="w-full p-2.5 bg-slate-100 border-transparent rounded-lg" required>
+                            <option value="" disabled>Selecione...</option>
+                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="total_quantity" className="block text-sm font-medium text-slate-700 mb-1">Qtd. Total</label>
+                            <input id="total_quantity" name="total_quantity" type="number" min="1" value={formData.total_quantity} onChange={handleChange} className="w-full p-2.5 bg-slate-100 border-transparent rounded-lg" />
+                        </div>
+                        <div>
+                            <label htmlFor="purchased_quantity" className="block text-sm font-medium text-slate-700 mb-1">Qtd. Comprada</label>
+                            <input id="purchased_quantity" name="purchased_quantity" type="number" min="0" max={formData.total_quantity} value={formData.purchased_quantity} onChange={handleChange} className="w-full p-2.5 bg-slate-100 border-transparent rounded-lg" />
+                        </div>
+                    </div>
+                    <div>
+                        <label htmlFor="notes" className="block text-sm font-medium text-slate-700 mb-1">Observação</label>
+                        <textarea id="notes" name="notes" value={formData.notes} onChange={handleChange} rows="3" className="w-full p-2.5 bg-slate-100 border-transparent rounded-lg"></textarea>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-4">
+                        <button type="button" onClick={onCancel} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2 px-4 rounded-lg">Cancelar</button>
+                        <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg">{isEditing ? 'Salvar' : 'Adicionar'}</button>
+                    </div>
+                </form>
+            );
+        };
+
+        const ConfirmationDialog = ({ title, message, onConfirm, onCancel }) => {
+            return (
+                <div>
+                    <p className="text-slate-600 mb-6">{message}</p>
+                    <div className="flex justify-end gap-3">
+                        <button onClick={onCancel} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2 px-4 rounded-lg">Cancelar</button>
+                        <button onClick={onConfirm} className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg">Confirmar Exclusão</button>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+    </script>
+</body>
+</html>
